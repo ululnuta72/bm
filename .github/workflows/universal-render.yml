@@ -72,13 +72,13 @@ jobs:
       - name: Check Social AI Scheduler settings
         if: ${{ github.event_name == 'schedule' || inputs.publish }}
         env:
-          SCHEDULER_API_BASE_URL: ${{ vars.SCHEDULER_API_BASE_URL }}
+          SCHEDULER_API_BASE_URL: ${{ secrets.SCHEDULER_API_BASE_URL }}
           SCHEDULER_API_KEY: ${{ secrets.SCHEDULER_API_KEY }}
-          SCHEDULER_PLATFORM: ${{ vars.SCHEDULER_PLATFORM }}
-          SCHEDULER_ACCOUNT_ID: ${{ vars.SCHEDULER_ACCOUNT_ID }}
+          SCHEDULER_PLATFORM: ${{ secrets.SCHEDULER_PLATFORM }}
+          SCHEDULER_ACCOUNT_ID: ${{ secrets.SCHEDULER_ACCOUNT_ID }}
         run: |
           if ! [[ "$SCHEDULER_API_BASE_URL" =~ ^https:// ]] || ! [[ "$SCHEDULER_PLATFORM" =~ ^(FACEBOOK|INSTAGRAM|YOUTUBE)$ ]] || [ -z "$SCHEDULER_API_KEY" ] || [ -z "$SCHEDULER_ACCOUNT_ID" ]; then
-            echo "::error::Set SCHEDULER_API_BASE_URL, SCHEDULER_PLATFORM (FACEBOOK/INSTAGRAM/YOUTUBE), and SCHEDULER_ACCOUNT_ID as Actions variables, plus SCHEDULER_API_KEY as an Actions secret."
+            echo "::error::Set SCHEDULER_API_BASE_URL, SCHEDULER_PLATFORM (FACEBOOK/INSTAGRAM/YOUTUBE), SCHEDULER_ACCOUNT_ID, and SCHEDULER_API_KEY as Actions secrets."
             exit 1
           fi
       - uses: actions/setup-python@v5
@@ -164,10 +164,10 @@ jobs:
       - name: Submit video to Social AI Scheduler
         if: ${{ github.event_name == 'schedule' || inputs.publish }}
         env:
-          SCHEDULER_API_BASE_URL: ${{ vars.SCHEDULER_API_BASE_URL }}
+          SCHEDULER_API_BASE_URL: ${{ secrets.SCHEDULER_API_BASE_URL }}
           SCHEDULER_API_KEY: ${{ secrets.SCHEDULER_API_KEY }}
-          SCHEDULER_PLATFORM: ${{ vars.SCHEDULER_PLATFORM }}
-          SCHEDULER_ACCOUNT_ID: ${{ vars.SCHEDULER_ACCOUNT_ID }}
+          SCHEDULER_PLATFORM: ${{ secrets.SCHEDULER_PLATFORM }}
+          SCHEDULER_ACCOUNT_ID: ${{ secrets.SCHEDULER_ACCOUNT_ID }}
         run: |
           python - <<'PY'
           import json
