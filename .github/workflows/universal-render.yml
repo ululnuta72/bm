@@ -152,7 +152,10 @@ jobs:
               echo "::warning::Rendered ${actual}s for a ${target}s target; keeping the closest render."
               break
             fi
-            python generate_job.py --revise-job job.json --actual-duration-seconds "$actual"
+            if ! python generate_job.py --revise-job job.json --actual-duration-seconds "$actual"; then
+              echo "::warning::Dialogue revision failed; keeping the current render."
+              break
+            fi
           done
       - uses: actions/upload-artifact@v4
         with:

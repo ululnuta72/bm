@@ -34,10 +34,17 @@ def ask_model(messages, output_schema, max_tokens):
     )
     try:
         with urllib.request.urlopen(request, timeout=180) as response:
-            content = json.load(response)["choices"][0]["message"]["content"]
-            if not isinstance(content, str):
-                raise RuntimeError("Chat API returned no message content")
-            return json.loads(content)
+            try:
+                result = json.load(response)
+                content = result["choices"][0]["message"]["content"]
+            except (json.JSONDecodeError, KeyError, IndexError, TypeError) as error:
+                raise RuntimeError("Chat API returned an empty or malformed chat completion") from error
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("Chat API returned empty message content; check the provider/model response")
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as error:
+                raise RuntimeError(f"Chat API returned invalid JSON: {content[:300]!r}") from error
     except urllib.error.HTTPError as error:
         raise RuntimeError(f"Chat API {error.code}: {error.read().decode()[:500]}") from error
 
@@ -103,10 +110,14 @@ def revise_for_duration(job_path, actual_duration_seconds):
         "Preserve the topic and all job settings exactly. Return the full job JSON.\nCurrent job:\n"
         + json.dumps(job, ensure_ascii=False)
     )
-    revised = check(ask_model(
-        [{"role": "system", "content": "Revise the existing illustrated-video dialogue to fit its target duration. Return only schema-valid JSON."}, {"role": "user", "content": prompt}],
-        schema(), min(6000, max(1400, desired_words * 4)),
-    ))
+    try:
+        revised = check(ask_model(
+            [{"role": "system", "content": "Revise the existing illustrated-video dialogue to fit its target duration. Return only schema-valid JSON."}, {"role": "user", "content": prompt}],
+            schema(), min(6000, max(1400, desired_words * 4)),
+        ))
+    except Exception as error:
+        print(f"Could not adjust dialogue; keeping the current job: {error}")
+        return
     for key in ("title", "niche", "language", "format", "scene", "cast", "subtitles"):
         if revised.get(key, "srt" if key == "subtitles" else None) != job.get(key, "srt" if key == "subtitles" else None):
             raise ValueError(f"Gemma changed {key} while adjusting duration")
