@@ -109,7 +109,7 @@ def generate(brief, language, video_format, niche, scene, cast, output, target_d
     return job
 
 
-def revise_for_duration(job_path, actual_duration_seconds):
+def revise_for_duration(job_path, actual_duration_seconds, cta=""):
     path = Path(job_path)
     job = check(json.loads(path.read_text(encoding="utf-8")))
     target = job.get("target_duration_seconds")
@@ -138,13 +138,17 @@ def revise_for_duration(job_path, actual_duration_seconds):
         if revised.get(key, "srt" if key == "subtitles" else None) != job.get(key, "srt" if key == "subtitles" else None):
             raise ValueError(f"Gemma changed {key} while adjusting duration")
     revised["target_duration_seconds"] = target
+    if cta:
+        revised["lines"] = [line for line in revised["lines"] if line["text"].strip() != cta]
+        revised["lines"].append({"speaker": 1 - revised["lines"][-1]["speaker"] if revised["lines"] else 0, "text": cta})
+        check(revised)
     path.write_text(json.dumps(revised, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Adjusted dialogue toward {target}s (rendered {actual_duration_seconds:.1f}s)")
 
 
 def load_config(path):
     config = json.loads(Path(path).read_text(encoding="utf-8"))
-    expected = {"brief", "language", "format", "niche", "scene", "cast", "target_duration_seconds"}
+    expected = {"brief", "language", "format", "niche", "scene", "cast", "target_duration_seconds", "cta"}
     if not isinstance(config, dict) or set(config) != expected or not isinstance(config["cast"], list) or len(config["cast"]) != 2:
         raise ValueError(f"config must contain exactly: {', '.join(sorted(expected))}; cast must have two IDs")
     return config
@@ -155,6 +159,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=Path, help="JSON file with fixed scheduled-job settings")
     parser.add_argument("--revise-job", type=Path, help="Adjust a job's dialogue to its target duration after a render")
     parser.add_argument("--actual-duration-seconds", type=float)
+    parser.add_argument("--cta", default="", help="Exact final spoken CTA to preserve during duration revision")
     parser.add_argument("--brief")
     parser.add_argument("--language", choices=("ja", "en", "en-GB", "id", "jv"), default="en")
     parser.add_argument("--format", dest="video_format", choices=("shorts", "landscape", "square"), default="shorts")
@@ -167,7 +172,7 @@ if __name__ == "__main__":
     if args.revise_job:
         if args.actual_duration_seconds is None:
             parser.error("--revise-job requires --actual-duration-seconds")
-        revise_for_duration(args.revise_job, args.actual_duration_seconds)
+        revise_for_duration(args.revise_job, args.actual_duration_seconds, args.cta)
     elif args.config:
         try:
             config = load_config(args.config)
