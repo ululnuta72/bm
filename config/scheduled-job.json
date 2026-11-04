@@ -1,9 +1,9 @@
 {
-  "brief": "Create an original, practical short conversation for US parents about starting solids and baby first foods. Choose a fresh everyday topic and angle each run. Keep advice cautious, age-appropriate, evidence-aligned, and general; do not give individualized medical advice or make unsupported health claims. Use American English and finish with a brief safety reminder when relevant.",
+  "brief": "Create an original, practical short conversation for US moms and parents about everyday life with babies and postpartum motherhood. Choose a fresh topic and angle each run, and vary topics across runs. Draw from a broad mix: newborn and baby care, feeding, safe sleep basics, soothing, routines, play, bonding, development and milestones, diapering, bathing, travel, postpartum recovery and wellbeing, realistic self-care, and asking for support. Keep content age-appropriate, cautious, evidence-aligned, and general. Do not diagnose, give individualized medical advice, or make unsupported health claims; suggest asking a pediatrician or qualified clinician when a personal health concern comes up. Use warm, natural American English. Include a brief safety reminder only when relevant.",
   "language": "en",
   "format": "shorts",
   "target_duration_seconds": 30,
-  "niche": "BABY BITES US",
+  "niche": "BABY & MOM US",
   "scene": "auto",
   "cast": ["mika", "emi"]
 }
