@@ -56,11 +56,6 @@ on:
         required: false
         default: false
         type: boolean
-      cta:
-        description: Optional final spoken dialogue line
-        required: false
-        default: ''
-        type: string
 permissions:
   contents: read
 jobs:
@@ -83,10 +78,10 @@ jobs:
             echo "Manual publish not selected: upload step will be skipped."
           fi
       - name: Check model API secret
-        if: ${{ github.event_name == 'schedule' || inputs.mode == 'generate' }}
+        if: ${{ always() }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: test -n "$OPENAI_API_KEY" || { echo "::error::Add OPENAI_API_KEY to repository Actions secrets."; exit 1; }
+        run: test -n "$OPENAI_API_KEY" || { echo "::error::Add OPENAI_API_KEY to repository Actions secrets; it is used to generate the video dialogue and contextual spoken CTA."; exit 1; }
       - name: Check Social AI Scheduler settings
         if: ${{ github.event_name == 'schedule' || inputs.publish == true }}
         env:
@@ -144,32 +139,14 @@ jobs:
           job.setdefault('target_duration_seconds', int(os.environ['TARGET_DURATION_SECONDS'] or 30))
           pathlib.Path('job.json').write_text(json.dumps(job), encoding='utf-8')
           PY
-      - name: Add final spoken CTA
+      - name: Generate contextual spoken CTA
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'job' }}
         env:
-          CTA: ${{ inputs.cta }}
-          IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://ollama.com/v1' }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gemma4:cloud' }}
         run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          job = json.loads(Path('job.json').read_text(encoding='utf-8'))
-          cta = os.environ.get('CTA', '').strip()
-          if os.environ.get('IS_SCHEDULE') == 'true' and not cta:
-              cta = json.loads(Path('config/scheduled-job.json').read_text(encoding='utf-8')).get('cta', '').strip()
-          if cta:
-              if len(cta) > 180 or '\n' in cta or '|' in cta:
-                  raise ValueError('CTA must be one line of at most 180 characters and cannot contain |')
-              if not job['lines'] or job['lines'][-1]['text'].strip() != cta:
-                  if len(job['lines']) >= 100:
-                      raise ValueError('Cannot append CTA: job already has 100 dialogue lines')
-                  job['lines'].append({'speaker': 1 - job['lines'][-1]['speaker'] if job['lines'] else 0, 'text': cta})
-                  Path('job.json').write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding='utf-8')
-                  print('Added CTA as the final spoken dialogue line.')
-              else:
-                  print('CTA already appears as the final spoken line.')
-          else:
-              print('No CTA configured; keeping the dialogue unchanged.')
-          PY
+          python generate_job.py --add-cta job.json
       - name: Validate job
         run: python universal.py validate job.json
       - name: Render near target duration
@@ -178,12 +155,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://ollama.com/v1' }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gemma4:cloud' }}
-          CTA: ${{ inputs.cta }}
-          IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
         run: |
-          if [ "$IS_SCHEDULE" = "true" ] && [ -z "$CTA" ]; then
-            CTA=$(python -c 'import json; print(json.load(open("config/scheduled-job.json")).get("cta", ""))')
-          fi
           for attempt in 1 2; do
             python universal.py render job.json --output universal-output
             actual=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 universal-output/video.mp4)
@@ -201,7 +173,7 @@ jobs:
               echo "::warning::Rendered ${actual}s for a ${target}s target; keeping the closest render."
               break
             fi
-            if ! python generate_job.py --revise-job job.json --actual-duration-seconds "$actual" --cta "$CTA"; then
+            if ! python generate_job.py --revise-job job.json --actual-duration-seconds "$actual"; then
               echo "::warning::Dialogue revision failed; keeping the current render."
               break
             fi
