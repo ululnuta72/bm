@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Universal video job",
+  "type": "object", "additionalProperties": false,
+  "required": ["title", "niche", "language", "format", "scene", "cast", "lines"],
+  "properties": {
+    "title": {"type":"string","minLength":1,"maxLength":80},
+    "niche": {"type":"string","minLength":1,"maxLength":28},
+    "language": {"enum":["ja","en","en-GB","id","jv"]},
+    "format": {"enum":["shorts","landscape","square"]},
+    "target_duration_seconds": {"type":"integer","minimum":1,"maximum":600},
+    "scene": {"type":"string","pattern":"^[a-z]+$"},
+    "cast": {"type":"array","minItems":2,"maxItems":2,"items":{"enum":["mika","alex","haru","sora","rin","yuki","kenji","hana","ryu","kai","aoi","emi","taro","sakuya","daichi","kage","sayo","rex","marin","bolt","takeru","tomoe","luna","hoshi","eldo","mia","noa","rei","mei","gen","zed","sari","bagas"]}},
+    "subtitles": {"enum":["none","srt","hard"]},
+    "lines": {"type":"array","minItems":1,"maxItems":100,"items":{"type":"object","additionalProperties":false,"required":["speaker","text"],"properties":{"speaker":{"enum":[0,1]},"text":{"type":"string","minLength":1,"maxLength":180},"translation":{"type":"string","maxLength":180}}}}
+  }
+}

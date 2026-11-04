@@ -1,0 +1,233 @@
+[
+ {
+  "id": "mika",
+  "name": "Mika",
+  "tag": "Cheerful",
+  "group": "Everyday",
+  "voice": "female"
+ },
+ {
+  "id": "alex",
+  "name": "Alex",
+  "tag": "Friendly",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "haru",
+  "name": "Haru",
+  "tag": "Energetic",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "sora",
+  "name": "Sora",
+  "tag": "Cool",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "rin",
+  "name": "Rin",
+  "tag": "Playful",
+  "group": "Everyday",
+  "voice": "female"
+ },
+ {
+  "id": "yuki",
+  "name": "Yuki",
+  "tag": "Calm",
+  "group": "Traditional",
+  "voice": "female"
+ },
+ {
+  "id": "kenji",
+  "name": "Kenji",
+  "tag": "Bookish",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "hana",
+  "name": "Hana",
+  "tag": "Festival",
+  "group": "Traditional",
+  "voice": "female"
+ },
+ {
+  "id": "ryu",
+  "name": "Ryu",
+  "tag": "Fighter",
+  "group": "Traditional",
+  "voice": "male"
+ },
+ {
+  "id": "kai",
+  "name": "Kai",
+  "tag": "Explorer",
+  "group": "Pirate",
+  "voice": "male"
+ },
+ {
+  "id": "aoi",
+  "name": "Aoi",
+  "tag": "Sporty",
+  "group": "Everyday",
+  "voice": "female"
+ },
+ {
+  "id": "emi",
+  "name": "Emi",
+  "tag": "Cute",
+  "group": "Everyday",
+  "voice": "female"
+ },
+ {
+  "id": "taro",
+  "name": "Taro",
+  "tag": "Chef",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "sakuya",
+  "name": "Sakuya",
+  "tag": "Elegant",
+  "group": "Traditional",
+  "voice": "female"
+ },
+ {
+  "id": "daichi",
+  "name": "Daichi",
+  "tag": "Chill",
+  "group": "Everyday",
+  "voice": "male"
+ },
+ {
+  "id": "kage",
+  "name": "Kage",
+  "tag": "Shadow",
+  "group": "Ninja",
+  "voice": "male"
+ },
+ {
+  "id": "sayo",
+  "name": "Sayo",
+  "tag": "Swift",
+  "group": "Ninja",
+  "voice": "female"
+ },
+ {
+  "id": "rex",
+  "name": "Rex",
+  "tag": "Captain",
+  "group": "Pirate",
+  "voice": "male"
+ },
+ {
+  "id": "marin",
+  "name": "Marin",
+  "tag": "Navigator",
+  "group": "Pirate",
+  "voice": "female"
+ },
+ {
+  "id": "bolt",
+  "name": "Bolt",
+  "tag": "Mechanic",
+  "group": "Pirate",
+  "voice": "male"
+ },
+ {
+  "id": "takeru",
+  "name": "Takeru",
+  "tag": "Samurai",
+  "group": "Traditional",
+  "voice": "male"
+ },
+ {
+  "id": "tomoe",
+  "name": "Tomoe",
+  "tag": "Blade",
+  "group": "Traditional",
+  "voice": "female"
+ },
+ {
+  "id": "luna",
+  "name": "Luna",
+  "tag": "Star",
+  "group": "Magic",
+  "voice": "female"
+ },
+ {
+  "id": "hoshi",
+  "name": "Hoshi",
+  "tag": "Sparkle",
+  "group": "Magic",
+  "voice": "female"
+ },
+ {
+  "id": "eldo",
+  "name": "Eldo",
+  "tag": "Wizard",
+  "group": "Magic",
+  "voice": "male"
+ },
+ {
+  "id": "mia",
+  "name": "Mia",
+  "tag": "Witch",
+  "group": "Magic",
+  "voice": "female"
+ },
+ {
+  "id": "noa",
+  "name": "Noa",
+  "tag": "Idol",
+  "group": "Other",
+  "voice": "female"
+ },
+ {
+  "id": "rei",
+  "name": "Rei",
+  "tag": "Detective",
+  "group": "Other",
+  "voice": "male"
+ },
+ {
+  "id": "mei",
+  "name": "Mei",
+  "tag": "Scientist",
+  "group": "Other",
+  "voice": "female"
+ },
+ {
+  "id": "gen",
+  "name": "Gen",
+  "tag": "Sensei",
+  "group": "Traditional",
+  "voice": "male"
+ },
+ {
+  "id": "zed",
+  "name": "Zed",
+  "tag": "Rocker",
+  "group": "Other",
+  "voice": "male"
+ },
+ {
+  "id": "sari",
+  "name": "Sari",
+  "tag": "Batik-inspired",
+  "group": "Nusantara",
+  "voice": "female"
+ },
+ {
+  "id": "bagas",
+  "name": "Bagas",
+  "tag": "Batik-inspired",
+  "group": "Nusantara",
+  "voice": "male"
+ }
+]

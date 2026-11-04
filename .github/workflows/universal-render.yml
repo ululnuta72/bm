@@ -1,0 +1,191 @@
+name: Universal video render
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+      timezone: Asia/Jakarta
+  workflow_dispatch:
+    inputs:
+      job_b64:
+        description: Base64 job JSON when mode is job
+        required: false
+        type: string
+      mode:
+        description: Use a supplied job or ask Gemma 4 to create one
+        required: true
+        default: job
+        type: choice
+        options: [job, generate]
+      brief:
+        description: Video topic/brief when mode is generate
+        required: false
+        type: string
+      language:
+        description: ja, en, en-GB, id, or jv
+        required: false
+        default: en
+        type: choice
+        options: [ja, en, en-GB, id, jv]
+      format:
+        description: Aspect ratio preset
+        required: false
+        default: shorts
+        type: choice
+        options: [shorts, landscape, square]
+      target_duration_seconds:
+        description: Approximate rendered video duration (1–600 seconds)
+        required: false
+        default: 30
+        type: number
+      niche:
+        description: Audience or channel niche
+        required: false
+        default: STORY STUDIO
+        type: string
+      scene:
+        description: Supported illustration scene or auto
+        required: false
+        default: auto
+        type: string
+      cast:
+        description: Two character IDs, comma separated
+        required: false
+        default: mika,emi
+        type: string
+      publish:
+        description: Submit this manual run to Social AI Scheduler
+        required: false
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check model API secret
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'generate' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: test -n "$OPENAI_API_KEY" || { echo "::error::Add OPENAI_API_KEY to repository Actions secrets."; exit 1; }
+      - name: Check Social AI Scheduler settings
+        if: ${{ github.event_name == 'schedule' || inputs.publish }}
+        env:
+          SCHEDULER_API_BASE_URL: ${{ vars.SCHEDULER_API_BASE_URL }}
+          SCHEDULER_API_KEY: ${{ secrets.SCHEDULER_API_KEY }}
+          SCHEDULER_PLATFORM: ${{ vars.SCHEDULER_PLATFORM }}
+          SCHEDULER_ACCOUNT_ID: ${{ vars.SCHEDULER_ACCOUNT_ID }}
+        run: |
+          if ! [[ "$SCHEDULER_API_BASE_URL" =~ ^https:// ]] || ! [[ "$SCHEDULER_PLATFORM" =~ ^(FACEBOOK|INSTAGRAM|YOUTUBE)$ ]] || [ -z "$SCHEDULER_API_KEY" ] || [ -z "$SCHEDULER_ACCOUNT_ID" ]; then
+            echo "::error::Set SCHEDULER_API_BASE_URL, SCHEDULER_PLATFORM (FACEBOOK/INSTAGRAM/YOUTUBE), and SCHEDULER_ACCOUNT_ID as Actions variables, plus SCHEDULER_API_KEY as an Actions secret."
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+          python -m pip install -r requirements.txt
+      - name: Create job with OpenAI-compatible model
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'generate' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://ollama.com/v1' }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gemma4:cloud' }}
+          BRIEF: ${{ inputs.brief }}
+          LANGUAGE: ${{ inputs.language }}
+          VIDEO_FORMAT: ${{ inputs.format }}
+          TARGET_DURATION_SECONDS: ${{ inputs.target_duration_seconds }}
+          NICHE: ${{ inputs.niche }}
+          SCENE: ${{ inputs.scene }}
+          CAST: ${{ inputs.cast }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            python generate_job.py --config config/scheduled-job.json --output job.json
+          else
+            if [ -z "$BRIEF" ]; then echo "::error::Enter a brief when mode is generate."; exit 1; fi
+            python generate_job.py --brief "$BRIEF" --language "$LANGUAGE" --format "$VIDEO_FORMAT" --niche "$NICHE" --scene "$SCENE" --cast "${CAST%%,*}" "${CAST#*,}" --target-duration-seconds "$TARGET_DURATION_SECONDS" --output job.json
+          fi
+      - name: Decode supplied job
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'job' }}
+        env:
+          JOB_B64: ${{ inputs.job_b64 }}
+          TARGET_DURATION_SECONDS: ${{ inputs.target_duration_seconds }}
+        run: |
+          if [ -z "$JOB_B64" ]; then echo "::error::Provide job_b64 or select generate mode."; exit 1; fi
+          python - <<'PY'
+          import base64, os, pathlib
+          data = base64.b64decode(os.environ['JOB_B64'], validate=True)
+          if len(data) > 24000:
+              raise ValueError('Job exceeds 24000 bytes')
+          job = json.loads(data)
+          job.setdefault('target_duration_seconds', int(os.environ['TARGET_DURATION_SECONDS'] or 30))
+          pathlib.Path('job.json').write_text(json.dumps(job), encoding='utf-8')
+          PY
+      - name: Validate job
+        run: python universal.py validate job.json
+      - name: Render near target duration
+        env:
+          STRICT_VOICE: '1'
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://ollama.com/v1' }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gemma4:cloud' }}
+        run: |
+          for attempt in 1 2; do
+            python universal.py render job.json --output universal-output
+            actual=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 universal-output/video.mp4)
+            target=$(python -c 'import json; print(json.load(open("job.json")).get("target_duration_seconds", ""))')
+            if [ -z "$target" ] || python - "$target" "$actual" <<'PY'
+          import sys
+          target, actual = map(float, sys.argv[1:])
+          raise SystemExit(0 if abs(actual - target) <= max(3, target * 0.10) else 1)
+          PY
+            then
+              echo "Rendered ${actual}s for a ${target:-unspecified}s target."
+              break
+            fi
+            if [ "$attempt" -eq 2 ] || [ -z "$OPENAI_API_KEY" ]; then
+              echo "::warning::Rendered ${actual}s for a ${target}s target; keeping the closest render."
+              break
+            fi
+            python generate_job.py --revise-job job.json --actual-duration-seconds "$actual"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: universal-video-${{ github.run_id }}
+          path: |
+            universal-output/
+            job.json
+          retention-days: 7
+      - name: Submit video to Social AI Scheduler
+        if: ${{ github.event_name == 'schedule' || inputs.publish }}
+        env:
+          SCHEDULER_API_BASE_URL: ${{ vars.SCHEDULER_API_BASE_URL }}
+          SCHEDULER_API_KEY: ${{ secrets.SCHEDULER_API_KEY }}
+          SCHEDULER_PLATFORM: ${{ vars.SCHEDULER_PLATFORM }}
+          SCHEDULER_ACCOUNT_ID: ${{ vars.SCHEDULER_ACCOUNT_ID }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          job = json.loads(Path('job.json').read_text(encoding='utf-8'))
+          dialogue = ' '.join(line['text'] for line in job['lines'])
+          Path('post-title.txt').write_text(job['title'], encoding='utf-8')
+          Path('post-caption.txt').write_text(f"{job['title']}\n\n{dialogue}", encoding='utf-8')
+          PY
+          SCHEDULER_API_BASE_URL="${SCHEDULER_API_BASE_URL%/}"
+          response=$(curl --fail-with-body --silent --show-error \
+            -H "X-API-Key: $SCHEDULER_API_KEY" \
+            -F "file=@universal-output/video.mp4;type=video/mp4" \
+            --form-string "accountId=$SCHEDULER_ACCOUNT_ID" \
+            --form-string "platform=$SCHEDULER_PLATFORM" \
+            --form-string "aiGenerated=true" \
+            -F "title=<post-title.txt" \
+            -F "caption=<post-caption.txt" \
+            -F "description=<post-caption.txt" \
+            "$SCHEDULER_API_BASE_URL/api/direct-post")
+          python -c 'import json,sys; r=json.loads(sys.argv[1]); p=r.get("post",{}); assert p.get("id") and p.get("status")=="QUEUED", "Scheduler API did not return a queued post"; print("Queued in Social AI Scheduler:", p["id"], p["status"])' "$response"

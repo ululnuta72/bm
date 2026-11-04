@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>Studio</title>
+<style>body{font:16px system-ui;background:#17131d;color:#faf3f7;max-width:760px;margin:auto;padding:24px}h1{color:#f39ab1}label{display:block;margin:14px 0 5px}input,select,textarea,button{box-sizing:border-box;width:100%;border:1px solid #65546a;border-radius:9px;background:#2c2330;color:white;padding:10px;font:inherit}textarea{min-height:160px}button{background:#f39ab1;color:#23131a;font-weight:bold;cursor:pointer;margin-top:18px}small{color:#c9bac6}a{color:#f39ab1}input:focus,textarea:focus,select:focus,button:focus{outline:3px solid #fbd66b}</style></head><body>
+<h1>Studio</h1><p>Create a video job.</p><form id="form">
+<label for="repo">GitHub repository (owner/repo)</label><input id="repo" required pattern="[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+" placeholder="you/tiny-video-engine">
+<label for="token">Fine-grained token</label><input id="token" type="password" required autocomplete="off"><small>Actions: write on this repository. Kept in this tab only.</small>
+<label for="title">Title</label><input id="title" value="Three Ocean Facts" maxlength="80" required>
+<label for="niche">Brand / niche</label><input id="niche" value="TINY SCIENCE" maxlength="28" required>
+<label for="language">Language</label><select id="language"><option value="en">English (US)</option><option value="en-GB">English (UK)</option><option value="id">Bahasa Indonesia</option><option value="jv">Basa Jawa</option><option value="ja">Japanese</option></select>
+<label for="format">Format</label><select id="format"><option value="shorts">Shorts 9:16</option><option value="landscape">Landscape 16:9</option><option value="square">Square 1:1</option></select>
+<label for="duration">Target duration (seconds)</label><input id="duration" type="number" min="1" max="600" step="1" value="30" required><small>Approximate target. Gemma can adjust the dialogue after measuring the rendered video.</small>
+<label for="scene">Illustrated scene</label><select id="scene"><option>beach</option><option>cafe</option><option>classroom</option><option>bookstore</option><option>park</option><option>store</option><option>home</option><option>street</option><option>airport</option><option>auto</option></select>
+<label for="left">Left character</label><select id="left"></select><label for="right">Right character</label><select id="right"></select>
+<label for="lines">Dialogue (one line per speaker; 0 = left, 1 = right)</label><textarea id="lines" required>0: The ocean covers over seventy percent of Earth.
+1: And its deepest point is nearly eleven kilometers down!</textarea>
+<label for="subtitles">Subtitle file</label><select id="subtitles"><option value="srt">SRT</option><option value="none">None</option></select>
+<button>Generate video</button></form><p id="status" role="status" aria-live="polite"></p><p id="result"></p>
+<script>
+const names=['mika','alex','haru','sora','rin','yuki','kenji','hana','ryu','kai','aoi','emi','taro','sakuya','daichi','kage','sayo','rex','marin','bolt','takeru','tomoe','luna','hoshi','eldo','mia','noa','rei','mei','gen','zed','sari','bagas'];
+for(const id of ['left','right']){const el=document.getElementById(id);for(const name of names)el.add(new Option(name[0].toUpperCase()+name.slice(1),name))}document.getElementById('right').value='emi';
+document.getElementById('language').addEventListener('change',()=>{if(document.getElementById('language').value==='jv'){document.getElementById('left').value='sari';document.getElementById('right').value='bagas'}});
+const v=id=>document.getElementById(id).value;
+document.getElementById('form').onsubmit=async e=>{e.preventDefault();const status=document.getElementById('status'),result=document.getElementById('result');result.textContent='';
+try{const lines=v('lines').split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(s=>{const m=s.match(/^([01]):\s*(.+)$/);if(!m)throw Error('Each dialogue line must start with 0: or 1:');return {speaker:Number(m[1]),text:m[2]}});
+const duration=Number(v('duration'));if(!Number.isInteger(duration)||duration<1||duration>600)throw Error('Target duration must be 1–600 seconds.');
+if(!lines.length||lines.length>100||lines.some(x=>x.text.length>180)||v('left')===v('right'))throw Error('Use 1–100 short lines and two different characters.');
+const job={title:v('title'),niche:v('niche'),language:v('language'),format:v('format'),target_duration_seconds:duration,scene:v('scene'),cast:[v('left'),v('right')],subtitles:v('subtitles'),lines};
+const bytes=new TextEncoder().encode(JSON.stringify(job));if(bytes.length>24000)throw Error('Job exceeds 24000 bytes');
+status.textContent='Dispatching…';const encoded=btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''));
+const response=await fetch(`https://api.github.com/repos/${v('repo')}/actions/workflows/universal-render.yml/dispatches`,{method:'POST',headers:{Authorization:`Bearer ${v('token')}`,Accept:'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},body:JSON.stringify({ref:'main',inputs:{job_b64:encoded}})});
+if(!response.ok)throw Error(`GitHub API ${response.status}: ${(await response.text()).slice(0,200)}`);
+status.textContent='Job started. Download the artifact after it finishes.';const link=document.createElement('a');link.href=`https://github.com/${v('repo')}/actions/workflows/universal-render.yml`;link.textContent='Open Actions runs';result.append(link);
+}catch(error){status.textContent=error.message}};
+</script></body></html>

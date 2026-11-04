@@ -1,0 +1,9 @@
+{
+  "brief": "Create an original, practical short conversation for US parents about starting solids and baby first foods. Choose a fresh everyday topic and angle each run. Keep advice cautious, age-appropriate, evidence-aligned, and general; do not give individualized medical advice or make unsupported health claims. Use American English and finish with a brief safety reminder when relevant.",
+  "language": "en",
+  "format": "shorts",
+  "target_duration_seconds": 30,
+  "niche": "BABY BITES US",
+  "scene": "auto",
+  "cast": ["mika", "emi"]
+}

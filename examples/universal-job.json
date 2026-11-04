@@ -1,0 +1,13 @@
+{
+  "title": "Three Ocean Facts",
+  "niche": "TINY SCIENCE",
+  "language": "en",
+  "format": "shorts",
+  "scene": "beach",
+  "cast": ["mika", "emi"],
+  "subtitles": "srt",
+  "lines": [
+    {"speaker": 0, "text": "The ocean covers over seventy percent of Earth."},
+    {"speaker": 1, "text": "And its deepest point is nearly eleven kilometers down!"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Wedang Jahe Anget",
+  "niche": "DAPUR NUSANTARA",
+  "language": "jv",
+  "format": "shorts",
+  "scene": "home",
+  "cast": ["sari", "bagas"],
+  "subtitles": "srt",
+  "lines": [
+    {"speaker": 0, "text": "Halo! Dina iki ayo gawe wedang jahe sing anget.", "translation": "Hari ini kita buat wedang jahe hangat."},
+    {"speaker": 1, "text": "Geprek jahene, banjur godhog karo banyu lan gula jawa.", "translation": "Geprek jahe, lalu rebus dengan air dan gula jawa."},
+    {"speaker": 0, "text": "Yen wis wangi, saring lan sajikna. Enak tenan!", "translation": "Kalau sudah harum, saring dan sajikan."}
+  ]
+}
