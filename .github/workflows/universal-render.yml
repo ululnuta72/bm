@@ -118,7 +118,7 @@ jobs:
         run: |
           if [ -z "$JOB_B64" ]; then echo "::error::Provide job_b64 or select generate mode."; exit 1; fi
           python - <<'PY'
-          import base64, os, pathlib
+          import base64, json, os, pathlib
           data = base64.b64decode(os.environ['JOB_B64'], validate=True)
           if len(data) > 24000:
               raise ValueError('Job exceeds 24000 bytes')
