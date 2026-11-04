@@ -1,7 +1,7 @@
 name: Universal video render
 on:
   schedule:
-    - cron: '30 19 * * *'
+    - cron: '7 0,12 * * *'
       timezone: Asia/Jakarta
   workflow_dispatch:
     inputs:
