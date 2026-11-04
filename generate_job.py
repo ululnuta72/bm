@@ -11,6 +11,21 @@ from universal import check
 ROOT = Path(__file__).resolve().parent
 
 
+def parse_model_json(content):
+    content = content.strip()
+    if content.startswith("```"):
+        lines = content.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines).strip()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"Chat API returned invalid JSON: {content[:300]!r}") from error
+
+
 def ask_model(messages, output_schema, max_tokens):
     token = os.environ.get("OPENAI_API_KEY")
     if not token:
@@ -41,10 +56,7 @@ def ask_model(messages, output_schema, max_tokens):
                 raise RuntimeError("Chat API returned an empty or malformed chat completion") from error
             if not isinstance(content, str) or not content.strip():
                 raise RuntimeError("Chat API returned empty message content; check the provider/model response")
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError as error:
-                raise RuntimeError(f"Chat API returned invalid JSON: {content[:300]!r}") from error
+            return parse_model_json(content)
     except urllib.error.HTTPError as error:
         raise RuntimeError(f"Chat API {error.code}: {error.read().decode()[:500]}") from error
 
@@ -83,9 +95,13 @@ def generate(brief, language, video_format, niche, scene, cast, output, target_d
         "or legal topics, keep advice general and include a brief qualified-professional caveat."
     )
     job = check(ask_model([{"role": "system", "content": system}, {"role": "user", "content": user}], schema(), min(6000, max(1400, word_target * 4))))
-    if (job["language"] != language or job["format"] != video_format or job["cast"] != cast
-            or job["niche"] != niche or (scene != "auto" and job["scene"] != scene)):
-        raise ValueError("Gemma changed the requested niche, language, format, scene, or cast")
+    expected = {"language": language, "format": video_format, "cast": list(cast), "niche": niche}
+    if scene != "auto":
+        expected["scene"] = scene
+    mismatches = {key: {"expected": value, "received": job.get(key)}
+                  for key, value in expected.items() if job.get(key) != value}
+    if mismatches:
+        raise ValueError(f"Model changed requested settings: {json.dumps(mismatches, ensure_ascii=False)}")
     job["target_duration_seconds"] = target_duration_seconds
     output = Path(output)
     output.write_text(json.dumps(job, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
