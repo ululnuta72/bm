@@ -16,8 +16,14 @@ ROOT = Path(__file__).resolve().parent
 
 
 def check(job):
-    if not isinstance(job, dict) or set(job) - {"title", "niche", "language", "format", "target_duration_seconds", "scene", "cast", "lines", "subtitles"}:
-        raise ValueError("Unknown job fields")
+    allowed = {"title", "niche", "language", "format", "target_duration_seconds", "scene", "cast", "lines", "subtitles"}
+    if not isinstance(job, dict):
+        raise ValueError("job must be a JSON object")
+    unknown = set(job) - allowed
+    if unknown:
+        fields = ", ".join(sorted(unknown))
+        hint = " This looks like a generation config; use mode=generate instead." if "brief" in unknown else ""
+        raise ValueError(f"Unknown job fields: {fields}.{hint}")
     for key, limit in (("title", 80), ("niche", 28)):
         if not isinstance(job.get(key), str) or not 1 <= len(job[key]) <= limit or "\n" in job[key]:
             raise ValueError(f"{key} must be 1–{limit} characters on one line")

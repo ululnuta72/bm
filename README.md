@@ -2,6 +2,8 @@
 
 Private workflow untuk membuat video, menyimpan hasil sebagai artifact, dan mengirimnya ke Social AI Scheduler (SAS).
 
+Untuk AI agent yang menjalankan dan memantau GitHub Actions, ikuti [AGENT_GUIDE.md](AGENT_GUIDE.md). Panduan tersebut berisi input workflow, cara dispatch via `gh` atau REST API, cara memeriksa hasil, dan aturan agar tidak membuat posting duplikat.
+
 ## Sebelum menjalankan
 
 Di GitHub, buka **Settings → Secrets and variables → Actions**.
@@ -38,13 +40,7 @@ base64 < examples/universal-job.json | tr -d '\n' | pbcopy
 
 Perintah itu menyalin teks Base64 ke clipboard. Tempel **hasil yang tersalin** ke kolom `job_b64` di GitHub, bukan perintahnya.
 
-Untuk memakai konfigurasi job terjadwal sebagai job manual, jalankan:
-
-```sh
-base64 < config/scheduled-job.json | tr -d '\n' | pbcopy
-```
-
-Lalu tempel hasilnya ke `job_b64`, pilih mode **job**, dan sesuaikan target durasi bila perlu. `config/scheduled-job.json` sendiri dipakai otomatis oleh jadwal; mengubahnya perlu di-commit ke branch default.
+`config/scheduled-job.json` **bukan** job siap-render: isinya brief dan pilihan untuk AI pembuat job. Jangan encode file itu ke `job_b64`. Untuk mencoba konfigurasi tersebut secara manual, pilih mode **generate** lalu salin nilai `brief`, `language`, `format`, `target_duration_seconds`, `niche`, `scene`, dan `cast` ke input workflow. Untuk mode **job**, gunakan file job lengkap seperti `examples/universal-job.json`. Jadwal membaca `config/scheduled-job.json` otomatis; perubahan file itu perlu di-commit ke branch default.
 
 `publish` menentukan apakah run manual mengirim hasil ke SAS. Jika tidak dicentang, video hanya dibuat dan disimpan sebagai artifact. Run terjadwal mengirim ke SAS otomatis.
 
