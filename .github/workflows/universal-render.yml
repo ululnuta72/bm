@@ -157,6 +157,7 @@ jobs:
       - name: Render near target duration
         env:
           STRICT_VOICE: '1'
+          BM_SPRITE_DIR: 'test/characters-3d'
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://ollama.com/v1' }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gemma4:cloud' }}
