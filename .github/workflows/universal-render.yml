@@ -51,6 +51,11 @@ on:
         required: false
         default: mika,emi
         type: string
+      cast_pool:
+        description: Character IDs the model may choose from for dynamic casting, comma separated
+        required: false
+        default: ''
+        type: string
       publish:
         description: Upload the rendered video to Social AI Scheduler
         required: false
@@ -121,12 +126,15 @@ jobs:
           NICHE: ${{ inputs.niche }}
           SCENE: ${{ inputs.scene }}
           CAST: ${{ inputs.cast }}
+          CAST_POOL: ${{ inputs.cast_pool }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
             python generate_job.py --config config/scheduled-job.json --output job.json
           else
             if [ -z "$BRIEF" ]; then echo "::error::Enter a brief when mode is generate."; exit 1; fi
-            python generate_job.py --brief "$BRIEF" --language "$LANGUAGE" --format "$VIDEO_FORMAT" --niche "$NICHE" --scene "$SCENE" --cast "${CAST%%,*}" "${CAST#*,}" --target-duration-seconds "$TARGET_DURATION_SECONDS" --output job.json
+            pool_args=()
+            if [ -n "$CAST_POOL" ]; then pool_args=(--cast-pool ${CAST_POOL//,/ }); fi
+            python generate_job.py --brief "$BRIEF" --language "$LANGUAGE" --format "$VIDEO_FORMAT" --niche "$NICHE" --scene "$SCENE" --cast "${CAST%%,*}" "${CAST#*,}" "${pool_args[@]}" --target-duration-seconds "$TARGET_DURATION_SECONDS" --output job.json
           fi
       - name: Decode supplied job
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'job' }}
