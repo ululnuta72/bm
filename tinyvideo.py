@@ -668,7 +668,10 @@ def _sprite(cid, mouth, blink, expr="smile"):
     # otherwise draw as usual.
     d = os.environ.get("BM_SPRITE_DIR")
     if d:
-        for name in (f"{cid}_{expr}_m{mouth}.png", cid + ".png"):
+        # mouth_levels returns 0/1/2, but PNG variants only exist for m0/m1;
+        # clamp 2 -> 1 for the file lookup so loud speech still shows the open
+        # mouth instead of falling back to the closed-mouth base image.
+        for name in (f"{cid}_{expr}_m{min(mouth, 1)}.png", cid + ".png"):
             p = os.path.join(d, name)
             if os.path.exists(p):
                 im = Image.open(p).convert("RGBA")
