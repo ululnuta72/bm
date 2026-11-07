@@ -5,5 +5,16 @@
   "target_duration_seconds": 30,
   "niche": "BABY & MOM US",
   "scene": "auto",
-  "cast": ["mika", "emi"]
+  "cast": [
+    "sakuya",
+    "mei"
+  ],
+  "cast_pool": [
+    "sakuya",
+    "mei",
+    "sari",
+    "kenji",
+    "taro",
+    "bagas"
+  ]
 }
