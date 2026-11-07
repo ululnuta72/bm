@@ -1367,7 +1367,7 @@ def build(story, rate, dummy, tmp):
             sp = cur is not None and talk[cur]["speaker"] == nm
             bob = 6 * abs(math.sin(tt * 7)) if sp and mouth[i] else 2 * math.sin(tt * 2 + (0 if nm == "Mika" else 1.7))
             blink = ((i + (0 if nm == "Mika" else 41)) % 97) < 4
-            expr = expr_for_text(talk[cur].get("text", "")) if (cur is not None and sp) else "smile"
+            expr = expr_for_text(talk[cur].get("jp", "")) if (cur is not None and sp) else "smile"
             s = sprite(nm, int(mouth[i]) if sp else 0, blink, expr)
             fr.paste(s, (c["x"], int(CHAR_Y - bob)), s)
             p = pills[(nm, int(sp))]; fr.paste(p, (c["x"] + s.width // 2 - p.width // 2, 330), p)
