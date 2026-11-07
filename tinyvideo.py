@@ -651,21 +651,33 @@ def render_char(c, mouth, blink):
     return im.resize((int(560 * CHAR_SCALE), int(760 * CHAR_SCALE)), Image.LANCZOS)
 
 
+def expr_for_text(text):
+    # TEST ONLY: pick a facial expression from the spoken line.
+    t = (text or "").strip()
+    if t.endswith("?"):
+        return "curious"
+    if "!" in t:
+        return "surprised"
+    return "smile"
+
+
 @functools.lru_cache(None)
-def _sprite(cid, mouth, blink):
+def _sprite(cid, mouth, blink, expr="smile"):
     # TEST ONLY (branch test/3d-characters): use a pre-rendered PNG sprite when
-    # BM_SPRITE_DIR is set and <cid>.png exists there; otherwise draw as usual.
+    # BM_SPRITE_DIR is set; <cid>_<expr>_m<mouth>.png wins, then <cid>.png,
+    # otherwise draw as usual.
     d = os.environ.get("BM_SPRITE_DIR")
     if d:
-        p = os.path.join(d, cid + ".png")
-        if os.path.exists(p):
-            im = Image.open(p).convert("RGBA")
-            return im.resize((int(560 * CHAR_SCALE), int(760 * CHAR_SCALE)), Image.LANCZOS)
+        for name in (f"{cid}_{expr}_m{mouth}.png", cid + ".png"):
+            p = os.path.join(d, name)
+            if os.path.exists(p):
+                im = Image.open(p).convert("RGBA")
+                return im.resize((int(560 * CHAR_SCALE), int(760 * CHAR_SCALE)), Image.LANCZOS)
     return render_char(ROSTER[cid], mouth, blink)
 
 
-def sprite(name, mouth, blink):
-    return _sprite(CHARS[name]["id"], mouth, blink)
+def sprite(name, mouth, blink, expr="smile"):
+    return _sprite(CHARS[name]["id"], mouth, blink, expr)
 
 
 def pill(text, fill, fg=(255, 255, 255)):
@@ -1355,7 +1367,8 @@ def build(story, rate, dummy, tmp):
             sp = cur is not None and talk[cur]["speaker"] == nm
             bob = 6 * abs(math.sin(tt * 7)) if sp and mouth[i] else 2 * math.sin(tt * 2 + (0 if nm == "Mika" else 1.7))
             blink = ((i + (0 if nm == "Mika" else 41)) % 97) < 4
-            s = sprite(nm, int(mouth[i]) if sp else 0, blink)
+            expr = expr_for_text(talk[cur].get("text", "")) if (cur is not None and sp) else "smile"
+            s = sprite(nm, int(mouth[i]) if sp else 0, blink, expr)
             fr.paste(s, (c["x"], int(CHAR_Y - bob)), s)
             p = pills[(nm, int(sp))]; fr.paste(p, (c["x"] + s.width // 2 - p.width // 2, 330), p)
         fr.paste(fg, (0, TABLE_TOP - 55), fg)
