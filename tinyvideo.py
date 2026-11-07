@@ -653,6 +653,14 @@ def render_char(c, mouth, blink):
 
 @functools.lru_cache(None)
 def _sprite(cid, mouth, blink):
+    # TEST ONLY (branch test/3d-characters): use a pre-rendered PNG sprite when
+    # BM_SPRITE_DIR is set and <cid>.png exists there; otherwise draw as usual.
+    d = os.environ.get("BM_SPRITE_DIR")
+    if d:
+        p = os.path.join(d, cid + ".png")
+        if os.path.exists(p):
+            im = Image.open(p).convert("RGBA")
+            return im.resize((int(560 * CHAR_SCALE), int(760 * CHAR_SCALE)), Image.LANCZOS)
     return render_char(ROSTER[cid], mouth, blink)
 
 
