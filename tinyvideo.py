@@ -1298,8 +1298,27 @@ def build(story, rate, dummy, tmp):
     voices = {"ja": (F_VOICE, M_VOICE), "en": ("en-US-AriaNeural", "en-US-GuyNeural"), "en-GB": ("en-GB-SoniaNeural", "en-GB-RyanNeural"), "id": ("id-ID-GadisNeural", "id-ID-ArdiNeural"), "jv": ("jv-ID-SitiNeural", "jv-ID-DimasNeural")}
     if meta.get("language", "ja") not in voices:
         sys.exit("Unsupported language. Choose ja, en, en-GB, id, or jv.")
-    for slot, voice in zip(("Mika", "Alex"), voices[meta.get("language", "ja")]):
-        CHARS[slot]["voice"] = voice
+    if meta.get("language", "ja") == "en":
+        # English voices follow the character's gender, not the slot: the
+        # right-hand slot used to always get the male Guy voice, so a woman
+        # cast there sounded male. Distinct voices per gender so two women
+        # (or two men) still sound different from each other.
+        en_voices = {"female": ["en-US-AriaNeural", "en-US-JennyNeural"],
+                     "male": ["en-US-GuyNeural", "en-US-EricNeural"]}
+        seen = {"female": 0, "male": 0}
+        for slot in ("Mika", "Alex"):
+            v = CHARS[slot].get("voice")
+            gender = "female" if v == F_VOICE else "male" if v == M_VOICE else None
+            if gender is None:
+                # unknown voice: keep the slot default for this language
+                CHARS[slot]["voice"] = voices["en"][0 if slot == "Mika" else 1]
+            else:
+                options = en_voices[gender]
+                CHARS[slot]["voice"] = options[min(seen[gender], len(options) - 1)]
+                seen[gender] += 1
+    else:
+        for slot, voice in zip(("Mika", "Alex"), voices[meta.get("language", "ja")]):
+            CHARS[slot]["voice"] = voice
     chunks, t = [np.zeros(int(0.6 * SR), np.float32)], 0.6
     for i, ln in enumerate(lines):
         wav = os.path.join(tmp, f"l{i}.wav"); synth(ln["jp"], ln["speaker"], wav, rate, dummy, lang=meta.get("language", "ja"))
