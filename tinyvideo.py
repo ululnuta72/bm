@@ -1266,6 +1266,91 @@ def wx_layer(kind, P, tt, front):
     return ov
 
 
+
+# ---------- lower band ----------
+# The 1080x1920 frame leaves a wide empty floor below the caption card
+# (roughly y 1400-1920). The lower band fills it with a small looping
+# illustration that matches the topic: hearts by default, steaming cups
+# for coffee/morning topics, sparkles for celebrations. Picked by keyword,
+# like pick_weather.
+LOWER_BAND_KINDS = ("hearts", "cups", "sparkles")
+LOWER_BAND_KEYWORDS = {
+    "cups": ["coffee", "tea", "morning", "breakfast", "cafe", "brunch", "latte"],
+    "sparkles": ["anniversary", "celebrat", "milestone", "birthday", "propos", "wedding", "engagement", "new year"],
+}
+LOWER_BAND_Y0 = 1500  # never higher than this, even for a short caption card
+
+
+def pick_lower_band(meta, lines):
+    """`lower_band:` in the story wins (hearts cups sparkles none ...); otherwise keywords; otherwise hearts."""
+    b = (meta.get("lower_band") or "auto").strip().lower()
+    if b == "none":
+        return None
+    if b in LOWER_BAND_KINDS:
+        return b
+    text = (meta.get("title", "") + " " + " ".join(l["jp"] + " " + l["en"] for l in lines)).lower()
+    title = meta.get("title", "").lower()
+    best, score = None, 0
+    for kind, kws in LOWER_BAND_KEYWORDS.items():
+        n = sum(kw_count(text, k) + 3 * kw_count(title, k) for k in kws)
+        if n > score:
+            best, score = kind, n
+    return best or "hearts"
+
+
+def _heart_points(cx, cy, s):
+    pts = []
+    for k in range(25):
+        t = 2 * math.pi * k / 25
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        pts.append((cx + x * s / 16, cy - y * s / 16))
+    return pts
+
+
+def draw_lower_band(fr, tt, kind, y0):
+    """Small looping motif in the empty floor band (y0..H), on an overlay so it can fade at the band edges."""
+    ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(ov)
+    span = H - y0
+    if kind == "hearts":
+        cols = [(232, 120, 140), (240, 150, 165), (222, 100, 130), (245, 180, 190)]
+        for k in range(9):
+            seed = k * 137.5
+            x0 = 70 + (seed % 940)
+            speed = 26 + (k % 4) * 7
+            y = y0 + (span - ((seed * 1.7 + speed * tt) % span))  # rises, wraps
+            sway = 14 * math.sin(tt * 1.1 + k * 1.3)
+            pos = (y - y0) / span  # 0 at top, 1 at bottom
+            a = int(235 * min(1, pos * 4, (1 - pos) * 4 + 0.25))
+            s = 15 + (k % 3) * 5
+            d.polygon(_heart_points(x0 + sway, y, s), fill=cols[k % len(cols)] + (max(0, min(235, a)),))
+    elif kind == "cups":
+        for cx in (270, 810):
+            bob = int(4 * math.sin(tt * 2.2 + cx))
+            cy = y0 + 190 + bob
+            d.ellipse((cx - 95, cy - 44, cx + 95, cy + 104), fill=(255, 250, 237, 255), outline=(142, 91, 61, 255), width=6)
+            d.ellipse((cx - 74, cy - 38, cx + 74, cy - 12), fill=(133, 79, 43, 255), outline=(142, 91, 61, 255), width=5)
+            d.arc((cx + 76, cy - 24, cx + 152, cy + 60), -85, 85, fill=(142, 91, 61, 255), width=11)
+            d.arc((cx + 86, cy - 12, cx + 142, cy + 48), -85, 85, fill=(255, 250, 237, 255), width=6)
+            for j, x in enumerate((cx - 32, cx, cx + 32)):
+                sway = int(10 * math.sin(tt * 3 + j * 1.8 + cx))
+                d.arc((x - 13 + sway, cy - 104 - j * 9, x + 13 + sway, cy - 58 - j * 9), 190, 345, fill=(255, 255, 255, 220), width=6)
+    elif kind == "sparkles":
+        for k in range(14):
+            seed = k * 173.3
+            x0 = 60 + (seed % 960)
+            speed = 20 + (k % 5) * 6
+            y = y0 + (span - ((seed * 1.3 + speed * tt) % span))
+            sway = 12 * math.sin(tt * 0.9 + k * 2.1)
+            tw = 0.55 + 0.45 * math.sin(tt * 4 + k * 1.7)
+            r = 5 + (k % 3) * 3
+            a = int(220 * tw)
+            d.line([(x0 + sway - r, y), (x0 + sway + r, y)], fill=(255, 214, 120, a), width=3)
+            d.line([(x0 + sway, y - r), (x0 + sway, y + r)], fill=(255, 214, 120, a), width=3)
+    fr.paste(ov, (0, 0), ov)
+
+
 def draw_wedang_demo(fr, tt, stage):
     """Small looping ginger-tea illustration for the Javanese demo's lower band."""
     d = ImageDraw.Draw(fr)
@@ -1353,6 +1438,7 @@ def build(story, rate, dummy, tmp):
     bg, fg = make_scene(meta["scene"], meta)
     wx = pick_weather(meta, lines, meta["scene"]); print("Weather:", wx or "none")
     wxp = make_weather(wx, meta["scene"]) if wx else None
+    band = pick_lower_band(meta, lines); print("Lower band:", band or "none")
     cards = [line_card(l) for l in lines]; vcards = [vocab_card(vocab, j) for j in range(len(vocab))]
     pills = {(nm, a): pill(CHARS[nm]["label"], CHARS[nm]["accent"] if a else (226, 214, 206), (255, 255, 255) if a else (130, 112, 108))
              for nm in CHARS for a in (0, 1)}
@@ -1385,6 +1471,11 @@ def build(story, rate, dummy, tmp):
             if f < 1:
                 card = card.copy(); card.putalpha(card.getchannel("A").point(lambda v: int(v * f)))
             fr.paste(card, (20, CARD_Y - 40 + dy), card)
+        band_y0 = LOWER_BAND_Y0
+        if card:
+            band_y0 = max(LOWER_BAND_Y0, CARD_Y - 40 + card.height + 24)
+        if band:
+            draw_lower_band(fr, tt, band, band_y0)
         if meta.get("context_animation") == "ginger-tea":
             stage = next((k for k, line in enumerate(lines) if tt <= line["end"] + 0.5), len(lines) - 1)
             draw_wedang_demo(fr, tt, min(2, stage))
