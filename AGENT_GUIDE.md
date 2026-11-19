@@ -13,7 +13,7 @@ One repository is configured for one social account/platform. Do not change the 
 1. Confirm the repository is `ululnuta72/bm`, unless the user names another repository.
 2. Confirm `gh auth status` succeeds, or that the calling integration has permission to dispatch workflows and read workflow runs/artifacts. Never ask the user to paste a PAT into chat, a workflow input, or a job file.
 3. Check that the workflow exists on the target branch. A dispatch can only use inputs defined by that workflow version.
-4. Ask for a topic/brief if none is provided. For this repository, the usual content niche is baby and mom / postpartum parenting in American English. Keep advice general and cautious; no diagnosis or individualized medical advice.
+4. Ask for a topic/brief if none is provided. For this repository, the usual content niche is 夫婦あるある — warm, funny daily-life relatable moments between a Japanese couple, entirely in Japanese. Keep it wholesome; no toxic drama or stereotyping.
 5. Ask whether the video should be submitted to SAS. For manual runs the default is **no**. `publish=true` submits to SAS and can publish to the configured account, so use it only when the user asks for submission.
 
 Required repository secrets for every run:
@@ -42,9 +42,9 @@ The model creates the video job from the brief and selected options. `brief` is 
 | `language` | `ja`, `en`, `en-GB`, `id`, `jv` |
 | `format` | `shorts` (9:16), `landscape` (16:9), `square` (1:1) |
 | `target_duration_seconds` | Approximate duration, 1–600; default 30 |
-| `niche` | Audience/channel label; default `STORY STUDIO` |
+| `niche` | Audience/channel label; default `夫婦あるある` |
 | `scene` | Scene identifier or `auto`; default `auto` |
-| `cast` | Exactly two character IDs separated by a comma; default `mika,emi` |
+| `cast` | Exactly two character IDs separated by a comma; default `sakuya,kenji` |
 | `publish` | Boolean; default `false` |
 
 The duration is approximate. The workflow may revise dialogue once, then keeps the closest render if it still misses the target.
@@ -79,13 +79,13 @@ Use `gh workflow run` from an authenticated environment. Always set `--ref` to t
 ```sh
 gh workflow run universal-render.yml --repo ululnuta72/bm --ref main \
   -f mode=generate \
-  -f brief='Create a warm, practical short about helping a new parent rest while the baby naps. Keep advice general and cautious.' \
-  -f language=en \
+  -f brief='Create a warm, funny short conversation in natural Japanese between a married couple about one relatable daily-life moment (夫婦あるある). Use real lived detail; keep it wholesome.' \
+  -f language=ja \
   -f format=shorts \
   -f target_duration_seconds=30 \
-  -f niche='BABY & MOM US' \
+  -f niche='夫婦あるある' \
   -f scene=auto \
-  -f cast=mika,emi \
+  -f cast=sakuya,kenji \
   -F publish=false
 ```
 
@@ -116,13 +116,13 @@ For `generate`, JSON body example:
   "ref": "main",
   "inputs": {
     "mode": "generate",
-    "brief": "Create a warm, practical short about baby and mom life. Keep advice general and cautious.",
-    "language": "en",
+    "brief": "Create a warm, funny short conversation in natural Japanese between a married couple about one relatable daily-life moment (夫婦あるある).",
+    "language": "ja",
     "format": "shorts",
     "target_duration_seconds": "30",
-    "niche": "BABY & MOM US",
+    "niche": "夫婦あるある",
     "scene": "auto",
-    "cast": "mika,emi",
+    "cast": "sakuya,kenji",
     "publish": "false"
   }
 }
