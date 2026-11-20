@@ -1140,17 +1140,13 @@ def balanced(text, f, maxw):
     return lines
 
 
-def line_card(ln, lang="ja"):
+def line_card(ln):
     maxw = 840
     jp = next((font(s) for s in (62, 56, 50) if font(s).getlength(ln["jp"]) <= maxw), font(56))
-    parts = [(t, jp, (52, 40, 44), 82) for t in balanced(ln["jp"], jp, maxw)]
-    if lang != "ja":
-        # Romaji + English rows are a learner feature; a native Japanese
-        # audience gets Japanese only.
-        ro, en = font(36, False), font(40, False)
-        parts += [("", None, None, 14)]
-        parts += [(t, ro, (176, 110, 128), 49) for t in wrap(ln["romaji"], ro, maxw)] + [("", None, None, 18)]
-        parts += [(t, en, (90, 78, 80), 54) for t in wrap(ln["en"], en, maxw)]
+    ro, en = font(36, False), font(40, False)
+    parts = [(t, jp, (52, 40, 44), 82) for t in balanced(ln["jp"], jp, maxw)] + [("", None, None, 14)]
+    parts += [(t, ro, (176, 110, 128), 49) for t in wrap(ln["romaji"], ro, maxw)] + [("", None, None, 18)]
+    parts += [(t, en, (90, 78, 80), 54) for t in wrap(ln["en"], en, maxw)]
     return card_image(CHARS[ln["speaker"]]["label"], CHARS[ln["speaker"]]["accent"], parts)
 
 
@@ -1279,10 +1275,8 @@ def wx_layer(kind, P, tt, front):
 # like pick_weather.
 LOWER_BAND_KINDS = ("hearts", "cups", "sparkles")
 LOWER_BAND_KEYWORDS = {
-    "cups": ["coffee", "tea", "morning", "breakfast", "cafe", "brunch", "latte",
-             "コーヒー", "お茶", "朝", "朝食", "カフェ", "紅茶", "モーニング"],
-    "sparkles": ["anniversary", "celebrat", "milestone", "birthday", "propos", "wedding", "engagement", "new year",
-                 "誕生日", "結婚", "記念日", "プロポーズ", "クリスマス", "新年", "お祝い"],
+    "cups": ["coffee", "tea", "morning", "breakfast", "cafe", "brunch", "latte"],
+    "sparkles": ["anniversary", "celebrat", "milestone", "birthday", "propos", "wedding", "engagement", "new year"],
 }
 LOWER_BAND_Y0 = 1500  # never higher than this, even for a short caption card
 
@@ -1389,28 +1383,22 @@ def build(story, rate, dummy, tmp):
     voices = {"ja": (F_VOICE, M_VOICE), "en": ("en-US-AriaNeural", "en-US-GuyNeural"), "en-GB": ("en-GB-SoniaNeural", "en-GB-RyanNeural"), "id": ("id-ID-GadisNeural", "id-ID-ArdiNeural"), "jv": ("jv-ID-SitiNeural", "jv-ID-DimasNeural")}
     if meta.get("language", "ja") not in voices:
         sys.exit("Unsupported language. Choose ja, en, en-GB, id, or jv.")
-    if meta.get("language", "ja") in ("en", "ja"):
-        # Voices follow the character's gender, not the slot: the
-        # right-hand slot used to always get the male voice, so a woman
+    if meta.get("language", "ja") == "en":
+        # English voices follow the character's gender, not the slot: the
+        # right-hand slot used to always get the male Guy voice, so a woman
         # cast there sounded male. Distinct voices per gender so two women
         # (or two men) still sound different from each other.
-        voice_sets = {
-            "en": {"female": ["en-US-AriaNeural", "en-US-JennyNeural"],
-                   "male": ["en-US-GuyNeural", "en-US-EricNeural"]},
-            "ja": {"female": ["ja-JP-NanamiNeural", "ja-JP-AoiNeural"],
-                   "male": ["ja-JP-KeitaNeural", "ja-JP-DaichiNeural"]},
-        }
-        lang = meta.get("language", "ja")
-        lang_voices = voice_sets[lang]
+        en_voices = {"female": ["en-US-AriaNeural", "en-US-JennyNeural"],
+                     "male": ["en-US-GuyNeural", "en-US-EricNeural"]}
         seen = {"female": 0, "male": 0}
         for slot in ("Mika", "Alex"):
             v = CHARS[slot].get("voice")
             gender = "female" if v == F_VOICE else "male" if v == M_VOICE else None
             if gender is None:
                 # unknown voice: keep the slot default for this language
-                CHARS[slot]["voice"] = voices[lang][0 if slot == "Mika" else 1]
+                CHARS[slot]["voice"] = voices["en"][0 if slot == "Mika" else 1]
             else:
-                options = lang_voices[gender]
+                options = en_voices[gender]
                 CHARS[slot]["voice"] = options[min(seen[gender], len(options) - 1)]
                 seen[gender] += 1
     else:
@@ -1451,7 +1439,7 @@ def build(story, rate, dummy, tmp):
     wx = pick_weather(meta, lines, meta["scene"]); print("Weather:", wx or "none")
     wxp = make_weather(wx, meta["scene"]) if wx else None
     band = pick_lower_band(meta, lines); print("Lower band:", band or "none")
-    cards = [line_card(l, meta.get("language", "ja")) for l in lines]; vcards = [vocab_card(vocab, j) for j in range(len(vocab))]
+    cards = [line_card(l) for l in lines]; vcards = [vocab_card(vocab, j) for j in range(len(vocab))]
     pills = {(nm, a): pill(CHARS[nm]["label"], CHARS[nm]["accent"] if a else (226, 214, 206), (255, 255, 255) if a else (130, 112, 108))
              for nm in CHARS for a in (0, 1)}
 
