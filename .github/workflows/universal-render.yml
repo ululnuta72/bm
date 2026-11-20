@@ -1,8 +1,7 @@
 name: Universal video render
 on:
   schedule:
-    # 07:07 + 19:07 WIB = 09:07 + 21:07 JST (Japan morning + evening peak)
-    - cron: '7 7,19 * * *'
+    - cron: '7 0,12 * * *'
       timezone: Asia/Jakarta
   workflow_dispatch:
     inputs:
@@ -23,7 +22,7 @@ on:
       language:
         description: ja, en, en-GB, id, or jv
         required: false
-        default: ja
+        default: en
         type: choice
         options: [ja, en, en-GB, id, jv]
       format:
@@ -40,7 +39,7 @@ on:
       niche:
         description: Audience or channel niche
         required: false
-        default: 夫婦あるある
+        default: STORY STUDIO
         type: string
       scene:
         description: Supported illustration scene or auto
@@ -50,7 +49,7 @@ on:
       cast:
         description: Two character IDs, comma separated
         required: false
-        default: sakuya,kenji
+        default: mika,emi
         type: string
       cast_pool:
         description: Character IDs the model may choose from for dynamic casting, comma separated
