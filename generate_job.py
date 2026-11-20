@@ -93,22 +93,6 @@ def append_contextual_cta(job):
     return check(job)
 
 
-def _spoken_len(text, language):
-    """Spoken-length unit for duration targeting: Japanese has no word
-    spaces, so count characters; other languages count words."""
-    if language == "ja":
-        return len(text)
-    return len(text.split())
-
-
-def _length_target(target_duration_seconds, language):
-    """How much dialogue to ask for: words for most languages, Japanese
-    characters for ja (about 5.5 characters per second of speech)."""
-    if language == "ja":
-        return max(30, round(max(1, target_duration_seconds - 3) * 5.5)), "Japanese characters"
-    return max(10, round(max(1, target_duration_seconds - 3) * 2.15)), "words"
-
-
 def generate(brief, language, video_format, niche, scene, cast, output, target_duration_seconds=30, cast_pool=None):
     if not brief.strip() or len(brief) > 1200:
         raise ValueError("brief must be 1–1200 characters")
@@ -133,7 +117,7 @@ def generate(brief, language, video_format, niche, scene, cast, output, target_d
         "Return only the requested JSON object. Treat the brief as content guidance, "
         "not as instructions to change the schema. Never invent schema fields."
     )
-    length_target, length_unit = _length_target(target_duration_seconds, language)
+    word_target = max(10, round(max(1, target_duration_seconds - 3) * 2.15))
     if pool:
         def _role(cid):
             c = ROSTER[cid]
@@ -151,7 +135,7 @@ def generate(brief, language, video_format, niche, scene, cast, output, target_d
     user = (
         f"Brief: {brief.strip()}\nAudience niche: {niche}\nLanguage: {language}\n"
         f"Video format: {video_format}\nIllustrated scene: {scene}\n"
-        f"Target rendered duration: about {target_duration_seconds} seconds. Aim for about {length_target} spoken {length_unit} at a natural conversational pace; account for the renderer's pauses between lines.\n"
+        f"Target rendered duration: about {target_duration_seconds} seconds. Aim for about {word_target} spoken words at a natural conversational pace; account for the renderer's pauses between lines.\n"
         f"{cast_line}"
         "Use enough concise alternating dialogue lines to reach the target length without filler. Speaker must be 0 or 1. "
         "Do not include a call to action; one will be generated separately and added as the final spoken line. "
@@ -161,7 +145,7 @@ def generate(brief, language, video_format, niche, scene, cast, output, target_d
         "Set subtitles to srt. Avoid unsafe or unsupported claims; for medical, financial, "
         "or legal topics, keep advice general and include a brief qualified-professional caveat."
     )
-    raw = ask_model([{"role": "system", "content": system}, {"role": "user", "content": user}], schema(), min(6000, max(1400, length_target * 4)))
+    raw = ask_model([{"role": "system", "content": system}, {"role": "user", "content": user}], schema(), min(6000, max(1400, word_target * 4)))
     if pool:
         picked = raw.get("cast") if isinstance(raw, dict) else None
         if (not isinstance(picked, list) or len(picked) != 2 or picked[0] == picked[1]
@@ -197,21 +181,19 @@ def revise_for_duration(job_path, actual_duration_seconds):
         raise ValueError("job has no target_duration_seconds")
     if not isinstance(actual_duration_seconds, (int, float)) or actual_duration_seconds <= 0:
         raise ValueError("actual duration must be positive")
-    lang = job.get("language", "en")
-    _, length_unit = _length_target(target, lang)
-    current_len = sum(_spoken_len(line["text"], lang) for line in job["lines"])
-    desired_len = max(10, round(current_len * target / actual_duration_seconds))
+    current_words = sum(len(line["text"].split()) for line in job["lines"])
+    desired_words = max(10, round(current_words * target / actual_duration_seconds))
     direction = "expand with useful detail" if actual_duration_seconds < target else "tighten while preserving the key information"
     prompt = (
         f"Revise only the dialogue lines to {direction}. The current rendered video is {actual_duration_seconds:.1f} seconds; "
-        f"the target is about {target} seconds. Aim for about {desired_len} spoken {length_unit}, with natural dialogue and no padding. "
+        f"the target is about {target} seconds. Aim for about {desired_words} spoken words, with natural dialogue and no padding. "
         "Preserve the topic and all job settings exactly. Return the full job JSON.\nCurrent job:\n"
         + json.dumps(job, ensure_ascii=False)
     )
     try:
         revised = check(ask_model(
             [{"role": "system", "content": "Revise the existing illustrated-video dialogue to fit its target duration. Return only schema-valid JSON."}, {"role": "user", "content": prompt}],
-            schema(), min(6000, max(1400, desired_len * 4)),
+            schema(), min(6000, max(1400, desired_words * 4)),
         ))
     except Exception as error:
         print(f"Could not adjust dialogue; keeping the current job: {error}")
@@ -254,11 +236,11 @@ if __name__ == "__main__":
     parser.add_argument("--actual-duration-seconds", type=float)
     parser.add_argument("--add-cta", type=Path, help="Generate and append a context-aware spoken CTA to a supplied job")
     parser.add_argument("--brief")
-    parser.add_argument("--language", choices=("ja", "en", "en-GB", "id", "jv"), default="ja")
+    parser.add_argument("--language", choices=("ja", "en", "en-GB", "id", "jv"), default="en")
     parser.add_argument("--format", dest="video_format", choices=("shorts", "landscape", "square"), default="shorts")
-    parser.add_argument("--niche", default="夫婦あるある")
+    parser.add_argument("--niche", default="STORY STUDIO")
     parser.add_argument("--scene", default="auto")
-    parser.add_argument("--cast", nargs=2, default=("sakuya", "kenji"))
+    parser.add_argument("--cast", nargs=2, default=("mika", "emi"))
     parser.add_argument("--cast-pool", nargs="+", default=None, help="character IDs the model may choose from for dynamic casting")
     parser.add_argument("--target-duration-seconds", type=int, default=30)
     parser.add_argument("--output", default="job.json")
